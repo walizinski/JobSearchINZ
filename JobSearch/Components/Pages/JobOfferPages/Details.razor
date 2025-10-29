@@ -1,0 +1,73 @@
+﻿@page "/joboffers/details"
+@using JobSearch.Data
+@using JobSearch.Services
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@inject IJobOfferService JobOfferService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin,Moderator")]
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>JobOffer</h2>
+    <hr />
+    @if (joboffer is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">Title</dt>
+            <dd class="col-sm-10">@joboffer.Title</dd>
+            <dt class="col-sm-2">Description</dt>
+            <dd class="col-sm-10">@joboffer.Description</dd>
+            <dt class="col-sm-2">CompanyName</dt>
+            <dd class="col-sm-10">@joboffer.CompanyName</dd>
+            <dt class="col-sm-2">Location</dt>
+            <dd class="col-sm-10">@joboffer.Location</dd>
+            <dt class="col-sm-2">ContactInfo</dt>
+            <dd class="col-sm-10">@joboffer.ContactInfo</dd>
+            <dt class="col-sm-2">DatePosted</dt>
+            <dd class="col-sm-10">@joboffer.DatePosted</dd>
+            <dt class="col-sm-2">ApplicationDeadline</dt>
+            <dd class="col-sm-10">@joboffer.ApplicationDeadline</dd>
+            <dt class="col-sm-2">EmplType</dt>
+            <dd class="col-sm-10">@joboffer.EmplType</dd>
+            <dt class="col-sm-2">JobType</dt>
+            <dd class="col-sm-10">@joboffer.JobType</dd>
+            <dt class="col-sm-2">SalaryMin</dt>
+            <dd class="col-sm-10">@joboffer.SalaryMin</dd>
+            <dt class="col-sm-2">SalaryMax</dt>
+            <dd class="col-sm-10">@joboffer.SalaryMax</dd>
+            <dt class="col-sm-2">Requirements</dt>
+            <dd class="col-sm-10">@joboffer.Requirements</dd>
+            <dt class="col-sm-2">Benefits</dt>
+            <dd class="col-sm-10">@joboffer.Benefits</dd>
+            <dt class="col-sm-2">IsActive</dt>
+            <dd class="col-sm-10">@joboffer.IsActive</dd>
+        </dl>
+        <div>
+            <a href="@($"/joboffers/edit?id={joboffer.Id}")">Edit</a> |
+            <a href="@($"/joboffers")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private JobOffer? joboffer;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        joboffer = await JobOfferService.GetByIdAsync(Id);
+        if (joboffer is null)
+            NavigationManager.NavigateTo("/joboffers");
+    }
+}

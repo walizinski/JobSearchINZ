@@ -1,0 +1,57 @@
+﻿@page "/joboffers"
+@using JobSearch.Data
+@using JobSearch.Services
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@inject IJobOfferService JobOfferService
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin,Moderator")]
+
+
+<PageTitle>JobOffers</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="joboffers/create">Create New</a>
+</p>
+
+@if (items is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <QuickGrid Class="table" TGridItem="JobOffer" Items="items.AsQueryable()">
+        <PropertyColumn Property="joboffer => joboffer.Title" />
+        <PropertyColumn Property="joboffer => joboffer.Description" />
+        <PropertyColumn Property="joboffer => joboffer.CompanyName" />
+        <PropertyColumn Property="joboffer => joboffer.Location" />
+        <PropertyColumn Property="joboffer => joboffer.ContactInfo" />
+        <PropertyColumn Property="joboffer => joboffer.DatePosted" />
+        <PropertyColumn Property="joboffer => joboffer.ApplicationDeadline" />
+        <PropertyColumn Property="joboffer => joboffer.EmplType" />
+        <PropertyColumn Property="joboffer => joboffer.JobType" />
+        <PropertyColumn Property="joboffer => joboffer.SalaryMin" />
+        <PropertyColumn Property="joboffer => joboffer.SalaryMax" />
+        <PropertyColumn Property="joboffer => joboffer.Requirements" />
+        <PropertyColumn Property="joboffer => joboffer.Benefits" />
+        <PropertyColumn Property="joboffer => joboffer.IsActive" />
+        <TemplateColumn Context="joboffer">
+            <a href="@($"joboffers/edit?id={joboffer.Id}")">Edit</a> |
+            <a href="@($"joboffers/details?id={joboffer.Id}")">Details</a> |
+            <a href="@($"joboffers/delete?id={joboffer.Id}")">Delete</a>
+        </TemplateColumn>
+    </QuickGrid>
+}
+
+@code {
+    private List<JobOffer>? items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        items = await JobOfferService.GetAllAsync();
+    }
+}
