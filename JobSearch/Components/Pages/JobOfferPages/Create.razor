@@ -59,7 +59,7 @@
                 <label for="empltype" class="form-label">EmplType:</label> 
                 <InputSelect id="empltype" @bind-Value="JobOffer.EmplType" class="form-control" aria-required="true">
                     <option value="">-- Wybierz typ zatrudnienia --</option>
-                    @foreach (var type in Enum.GetValues(typeof(JobSearch.Data.EmploymentType)).Cast<JobSearch.Data.EmploymentType>())
+                    @foreach (var type in Enum.GetValues(typeof(EmploymentType)).Cast<EmploymentType>())
                     {
                         <option value="@type">@type</option>
                     }
@@ -70,7 +70,7 @@
                 <label for="jobtype" class="form-label">JobType:</label> 
                 <InputSelect id="jobtype" @bind-Value="JobOffer.JobType" class="form-control" aria-required="true">
                     <option value="">-- Wybierz typ pracy --</option>
-                    @foreach (var type in Enum.GetValues(typeof(JobSearch.Data.JobType)).Cast<JobSearch.Data.JobType>())
+                    @foreach (var type in Enum.GetValues(typeof(JobType)).Cast<JobType>())
                     {
                         <option value="@type">@type</option>
                     }
