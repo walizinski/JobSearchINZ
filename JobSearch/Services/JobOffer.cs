@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace JobSearch.Data
+namespace JobSearch.Services
 {
 	public enum EmploymentType
 	{
