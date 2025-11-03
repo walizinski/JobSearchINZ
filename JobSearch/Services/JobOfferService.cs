@@ -2,45 +2,81 @@
 using JobSearch.Services;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class JobOfferService : IJobOfferService
+public class JobOfferService : IJobOfferService
 {
-	private readonly IDbContextFactory<ApplicationDbContext> _factory;
-	public JobOfferService(IDbContextFactory<ApplicationDbContext> factory) => _factory = factory;
+    private readonly ApplicationDbContext _context;
 
-	public async Task<int> CreateAsync(JobOffer offer, CancellationToken ct = default)
-	{
-		await using var db = await _factory.CreateDbContextAsync(ct);
-		db.JobOffer.Add(offer);
-		await db.SaveChangesAsync(ct);
-		return offer.Id;
-	}
+    public JobOfferService(ApplicationDbContext context)
+    {
+        _context = context;
+    }
 
-	public async Task<List<JobOffer>> GetAllAsync(CancellationToken ct = default)
-	{
-		await using var db = await _factory.CreateDbContextAsync(ct);
-		return await db.JobOffer.AsNoTracking().OrderByDescending(x => x.DatePosted).ToListAsync(ct);
-	}
+    public async Task<List<JobOffer>> GetJobOffersAsync(string? location, decimal? minSalary, string? sortBy, EmploymentType? employmentType, JobType? jobType)
+    {
+        var query = _context.JobOffer.Where(o => o.IsActive).AsQueryable();
 
-	public async Task<JobOffer?> GetByIdAsync(int id, CancellationToken ct = default)
-	{
-		await using var db = await _factory.CreateDbContextAsync(ct);
-		return await db.JobOffer.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
-	}
+        if (!string.IsNullOrEmpty(location))
+        {
+            query = query.Where(o => o.Location.ToLower().Contains(location.ToLower()));
+        }
 
-	public async Task UpdateAsync(JobOffer offer, CancellationToken ct = default)
-	{
-		await using var db = await _factory.CreateDbContextAsync(ct);
-		db.JobOffer.Attach(offer);
-		db.Entry(offer).State = EntityState.Modified;
-		await db.SaveChangesAsync(ct);
-	}
+        if (minSalary.HasValue && minSalary.Value > 0)
+        {
+            query = query.Where(o => o.SalaryMin >= minSalary.Value);
+        }
 
-	public async Task DeleteAsync(int id, CancellationToken ct = default)
-	{
-		await using var db = await _factory.CreateDbContextAsync(ct);
-		var entity = await db.JobOffer.FirstOrDefaultAsync(x => x.Id == id, ct);
-		if (entity is null) return;
-		db.JobOffer.Remove(entity);
-		await db.SaveChangesAsync(ct);
-	}
+      
+        if (employmentType.HasValue)
+        {
+            query = query.Where(o => o.EmplType == employmentType.Value);
+        }
+
+        if (jobType.HasValue)
+        {
+            query = query.Where(o => o.JobType == jobType.Value);
+        }
+      
+        switch (sortBy)
+        {
+            case "salary_desc":
+                query = query.OrderByDescending(o => o.SalaryMin);
+                break;
+            case "salary_asc":
+                query = query.OrderBy(o => o.SalaryMin);
+                break;
+            default:
+                query = query.OrderByDescending(o => o.DatePosted);
+                break;
+        }
+
+        return await query.ToListAsync();
+    }
+
+    public async Task<JobOffer?> GetByIdAsync(int id)
+    {
+        return await _context.JobOffer.FindAsync(id);
+    }
+
+    public async Task CreateAsync(JobOffer jobOffer)
+    {
+        jobOffer.DatePosted = DateTime.Now;
+        _context.JobOffer.Add(jobOffer);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateAsync(JobOffer jobOffer)
+    {
+        _context.Entry(jobOffer).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        var jobOffer = await _context.JobOffer.FindAsync(id);
+        if (jobOffer != null)
+        {
+            _context.JobOffer.Remove(jobOffer);
+            await _context.SaveChangesAsync();
+        }
+    }
 }

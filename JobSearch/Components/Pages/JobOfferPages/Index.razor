@@ -1,57 +1,136 @@
 ﻿@page "/joboffers"
+@rendermode InteractiveServer
 @using JobSearch.Data
 @using JobSearch.Services
-@using Microsoft.AspNetCore.Components.QuickGrid
-@using Microsoft.EntityFrameworkCore
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Identity
 @inject IJobOfferService JobOfferService
-@rendermode InteractiveServer
-@attribute [Authorize(Roles = "Admin,Moderator")]
 
+<PageTitle>Oferty Pracy</PageTitle>
 
-<PageTitle>JobOffers</PageTitle>
-
-<h1>Index</h1>
+<h1>Oferty Pracy</h1>
 
 <p>
-    <a href="joboffers/create">Create New</a>
+    <a href="/joboffers/create" class="btn btn-primary">Dodaj nową ofertę</a>
 </p>
 
-@if (items is null)
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Filtruj i sortuj</h5>
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-3">
+                <label for="locationFilter" class="form-label">Lokalizacja</label>
+                <input id="locationFilter" @bind="locationFilter" class="form-control" placeholder="np. Warszawa" />
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <label for="employmentTypeFilter" class="form-label">Rodzaj zatrudnienia</label>
+                <InputSelect id="employmentTypeFilter" @bind-Value="employmentTypeFilter" class="form-select">
+                    <option value="">Wszystkie</option>
+                    @foreach (var type in Enum.GetValues(typeof(EmploymentType)))
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <label for="jobTypeFilter" class="form-label">Tryb pracy</label>
+                <InputSelect id="jobTypeFilter" @bind-Value="jobTypeFilter" class="form-select">
+                    <option value="">Wszystkie</option>
+                    @foreach (var type in Enum.GetValues(typeof(JobType)))
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <label for="salaryFilter" class="form-label">Minimalne wynagrodzenie</label>
+                <InputNumber id="salaryFilter" @bind-Value="minSalaryFilter" class="form-control" placeholder="np. 5000" />
+            </div>
+        </div>
+        <div class="row g-3 mt-2 align-items-end">
+            <div class="col-md-6 col-lg-4">
+                <label for="sortBy" class="form-label">Sortuj według</label>
+                <select id="sortBy" @bind="sortBy" class="form-select">
+                    <option value="date_desc">Najnowsze</option>
+                    <option value="salary_desc">Wynagrodzenie (najwyższe)</option>
+                    <option value="salary_asc">Wynagrodzenie (najniższe)</option>
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <button class="btn btn-success w-100" @onclick="ApplyFilters">Filtruj</button>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <button class="btn btn-secondary w-100" @onclick="ClearFilters">Wyczyść</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@if (jobOffers == null)
 {
-    <p><em>Loading...</em></p>
+    <p><em>Ładowanie...</em></p>
+}
+else if (!jobOffers.Any())
+{
+    <div class="alert alert-info">Brak ofert pracy spełniających podane kryteria.</div>
 }
 else
 {
-    <QuickGrid Class="table" TGridItem="JobOffer" Items="items.AsQueryable()">
-        <PropertyColumn Property="joboffer => joboffer.Title" />
-        <PropertyColumn Property="joboffer => joboffer.Description" />
-        <PropertyColumn Property="joboffer => joboffer.CompanyName" />
-        <PropertyColumn Property="joboffer => joboffer.Location" />
-        <PropertyColumn Property="joboffer => joboffer.ContactInfo" />
-        <PropertyColumn Property="joboffer => joboffer.DatePosted" />
-        <PropertyColumn Property="joboffer => joboffer.ApplicationDeadline" />
-        <PropertyColumn Property="joboffer => joboffer.EmplType" />
-        <PropertyColumn Property="joboffer => joboffer.JobType" />
-        <PropertyColumn Property="joboffer => joboffer.SalaryMin" />
-        <PropertyColumn Property="joboffer => joboffer.SalaryMax" />
-        <PropertyColumn Property="joboffer => joboffer.Requirements" />
-        <PropertyColumn Property="joboffer => joboffer.Benefits" />
-        <PropertyColumn Property="joboffer => joboffer.IsActive" />
-        <TemplateColumn Context="joboffer">
-            <a href="@($"joboffers/edit?id={joboffer.Id}")">Edit</a> |
-            <a href="@($"joboffers/details?id={joboffer.Id}")">Details</a> |
-            <a href="@($"joboffers/delete?id={joboffer.Id}")">Delete</a>
-        </TemplateColumn>
-    </QuickGrid>
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+        @foreach (var offer in jobOffers)
+        {
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">@offer.Title</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">@offer.CompanyName</h6>
+                        <p class="card-text">
+                            <strong>Lokalizacja:</strong> @offer.Location<br />
+                            <strong>Wynagrodzenie:</strong> @offer.SalaryRange
+                        </p>
+                        <a href="@($"/joboffers/details/{offer.Id}")" class="btn btn-secondary btn-sm">Szczegóły</a>
+                    </div>
+                    <div class="card-footer text-muted">
+                        Dodano: @offer.DatePosted.ToShortDateString()
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
 }
 
 @code {
-    private List<JobOffer>? items;
+    private List<JobOffer>? jobOffers;
+
+    // Pola do bindowania z formularzem
+    private string? locationFilter;
+    private decimal? minSalaryFilter;
+    private string sortBy = "date_desc";
+    private EmploymentType? employmentTypeFilter;
+    private JobType? jobTypeFilter;
 
     protected override async Task OnInitializedAsync()
     {
-        items = await JobOfferService.GetAllAsync();
+        await LoadOffers();
+    }
+
+    private async Task ApplyFilters()
+    {
+        await LoadOffers();
+    }
+
+    private async Task ClearFilters()
+    {
+        locationFilter = null;
+        minSalaryFilter = null;
+        employmentTypeFilter = null;
+        jobTypeFilter = null;
+        sortBy = "date_desc";
+        await LoadOffers();
+    }
+
+    private async Task LoadOffers()
+    {
+        jobOffers = await JobOfferService.GetJobOffersAsync(locationFilter, minSalaryFilter, sortBy, employmentTypeFilter, jobTypeFilter);
+        StateHasChanged();
     }
 }

@@ -1,73 +1,102 @@
-﻿@page "/joboffers/details"
-@using JobSearch.Data
+﻿@page "/joboffers/details/{Id:int}"
 @using JobSearch.Services
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
-@inject IJobOfferService JobOfferService
+@using System.Security.Claims
 @inject NavigationManager NavigationManager
+
+@inject IJobOfferService JobOfferService
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin,Moderator")]
 
-<PageTitle>Details</PageTitle>
+<PageTitle>Szczegóły Oferty</PageTitle>
 
-<h1>Details</h1>
+<h3>Szczegóły Oferty Pracy</h3>
 
-<div>
-    <h2>JobOffer</h2>
-    <hr />
-    @if (joboffer is null)
-    {
-        <p><em>Loading...</em></p>
-    }
-    else {
-        <dl class="row">
-            <dt class="col-sm-2">Title</dt>
-            <dd class="col-sm-10">@joboffer.Title</dd>
-            <dt class="col-sm-2">Description</dt>
-            <dd class="col-sm-10">@joboffer.Description</dd>
-            <dt class="col-sm-2">CompanyName</dt>
-            <dd class="col-sm-10">@joboffer.CompanyName</dd>
-            <dt class="col-sm-2">Location</dt>
-            <dd class="col-sm-10">@joboffer.Location</dd>
-            <dt class="col-sm-2">ContactInfo</dt>
-            <dd class="col-sm-10">@joboffer.ContactInfo</dd>
-            <dt class="col-sm-2">DatePosted</dt>
-            <dd class="col-sm-10">@joboffer.DatePosted</dd>
-            <dt class="col-sm-2">ApplicationDeadline</dt>
-            <dd class="col-sm-10">@joboffer.ApplicationDeadline</dd>
-            <dt class="col-sm-2">EmplType</dt>
-            <dd class="col-sm-10">@joboffer.EmplType</dd>
-            <dt class="col-sm-2">JobType</dt>
-            <dd class="col-sm-10">@joboffer.JobType</dd>
-            <dt class="col-sm-2">SalaryMin</dt>
-            <dd class="col-sm-10">@joboffer.SalaryMin</dd>
-            <dt class="col-sm-2">SalaryMax</dt>
-            <dd class="col-sm-10">@joboffer.SalaryMax</dd>
-            <dt class="col-sm-2">Requirements</dt>
-            <dd class="col-sm-10">@joboffer.Requirements</dd>
-            <dt class="col-sm-2">Benefits</dt>
-            <dd class="col-sm-10">@joboffer.Benefits</dd>
-            <dt class="col-sm-2">IsActive</dt>
-            <dd class="col-sm-10">@joboffer.IsActive</dd>
-        </dl>
-        <div>
-            <a href="@($"/joboffers/edit?id={joboffer.Id}")">Edit</a> |
-            <a href="@($"/joboffers")">Back to List</a>
+@if (jobOffer == null)
+{
+    <p><em>Ładowanie...</em></p>
+}
+else
+{
+    <div class="card">
+        <div class="card-header">
+            <h4>@jobOffer.Title</h4>
+            <h6 class="text-muted">@jobOffer.CompanyName</h6>
         </div>
-    }
-</div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Lokalizacja</dt>
+                <dd class="col-sm-9">@jobOffer.Location</dd>
+
+                <dt class="col-sm-3">Wynagrodzenie</dt>
+                <dd class="col-sm-9">@jobOffer.SalaryRange</dd>
+
+                <dt class="col-sm-3">Rodzaj zatrudnienia</dt>
+                <dd class="col-sm-9">@jobOffer.EmplType</dd>
+
+                <dt class="col-sm-3">Tryb pracy</dt>
+                <dd class="col-sm-9">@jobOffer.JobType</dd>
+
+                <dt class="col-sm-3">Opis stanowiska</dt>
+                <dd class="col-sm-9">
+                    @if (!string.IsNullOrEmpty(jobOffer.Description))
+                    {
+                        @((MarkupString)jobOffer.Description.Replace("\n", "<br />"))
+                    }
+                </dd>
+
+                <dt class="col-sm-3">Wymagania</dt>
+                <dd class="col-sm-9">
+                    @if (!string.IsNullOrEmpty(jobOffer.Requirements))
+                    {
+                        @((MarkupString)jobOffer.Requirements.Replace("\n", "<br />"))
+                    }
+                </dd>
+
+                @if (!string.IsNullOrEmpty(jobOffer.Benefits))
+                {
+                    <dt class="col-sm-3">Benefity</dt>
+                    <dd class="col-sm-9">@jobOffer.Benefits</dd>
+                }
+
+                <dt class="col-sm-3">Data publikacji</dt>
+                <dd class="col-sm-9">@jobOffer.DatePosted.ToShortDateString()</dd>
+            </dl>
+        </div>
+        <div class="card-footer d-flex justify-content-between">
+            <a href="/joboffers" class="btn btn-secondary">Powrót do listy</a>
+
+            <AuthorizeView>
+                <Authorized Context="auth">
+                    @if (auth.User != null && (auth.User.IsInRole("Admin") || auth.User.IsInRole("Moderator")))
+                    {
+                        <div>
+                            <a href="@($"/joboffers/edit/{jobOffer.Id}")" class="btn btn-primary">Edytuj</a>
+                            <a href="@($"/joboffers/delete/{jobOffer.Id}")" class="btn btn-danger">Usuń</a>
+                        </div>
+                    }
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </div>
+}
 
 @code {
-    private JobOffer? joboffer;
+    [Parameter]
+    public int Id { get; set; }
 
-    [SupplyParameterFromQuery]
-    private int Id { get; set; }
+    private JobOffer? jobOffer;
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
     {
-        joboffer = await JobOfferService.GetByIdAsync(Id);
-        if (joboffer is null)
-            NavigationManager.NavigateTo("/joboffers");
+        jobOffer = await JobOfferService.GetByIdAsync(Id);
+
+        if (jobOffer == null)
+        {
+            Navigation.NavigateTo("/joboffers");
+        }
     }
 }
